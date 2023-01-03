@@ -1,8 +1,6 @@
 package lifting
 
-import (
-	"log"
-)
+import "fmt"
 
 type Datapoint struct {
 	Salt             int32
@@ -34,19 +32,19 @@ func ExampleLiftStructures() {
 		NewDP(SwampHut, MC_1_17, -134646, -15922),
 		NewDP(SwampHut, MC_1_17, -66110, 92835),
 	}
-	structureSeeds := LiftStructures(d)
-	log.Printf("Got %d structure seeds: %v", len(structureSeeds), structureSeeds)
+	structureSeeds := LiftStructures(d, nil, nil)
+	fmt.Printf("Got %d structure seeds: %v\n", len(structureSeeds), structureSeeds)
 	worldSeeds := []int64{}
 	for _, v := range structureSeeds {
-		worldSeeds = append(worldSeeds, structureSeedToWorldSeeds(v)...)
+		worldSeeds = append(worldSeeds, StructureSeedToWorldSeeds(v)...)
 	}
-	log.Printf("Got %d world seeds: %v", len(worldSeeds), worldSeeds)
+	fmt.Printf("Got %d world seeds: %v\n", len(worldSeeds), worldSeeds)
 }
 
 func NewDP(st Structure, mc Version, cx, cz int) Datapoint {
 	s := getStructureConfig(st, mc)
 	if s == nil {
-		log.Fatal("Wrong structure!")
+		panic("Wrong structure!")
 	}
 	spacing := int(s.regionSize)
 	x := cx
@@ -68,12 +66,42 @@ func NewDP(st Structure, mc Version, cx, cz int) Datapoint {
 	return d
 }
 
-func LiftStructures(data []Datapoint) []int64 {
+type LiftingProgress struct {
+	LowerProgress  float64 // 0 to 1
+	LowerCurrent   int64
+	LowerMax       int64
+	HigherProgress float64
+	HigherCurrent  int64
+	HigherMax      int64
+	Found          []int64
+}
+
+// LiftStructures will filter structure seed space to only those that match requirements
+// from array of Datapoints data. It will report it's progress via prgress channel
+// and can be stopped by sending to a stop channel.
+// Resulting structure seeds can be obtained by collecting Found array from progress
+// or via return value. Both progress and stop channels may be nil.
+func LiftStructures(data []Datapoint, progress chan LiftingProgress, stop chan struct{}) []int64 {
 	structureSeeds := []int64{}
+	foundSince := []int64{}
 lowerLoop:
 	for lower := int64(0); lower < int64(1)<<19; lower++ {
 		if lower%((1<<19)/100) == 0 {
-			log.Printf("lower %3.0f%% (%6d/%-6d) (so far %d)", float64(lower)/float64(1<<19)*100, lower, 1<<19, len(structureSeeds))
+			select {
+			case <-stop:
+				return structureSeeds
+			case progress <- LiftingProgress{
+				LowerProgress:  float64(lower) / float64(1<<19),
+				LowerCurrent:   lower,
+				LowerMax:       1 << 19,
+				HigherProgress: 0,
+				HigherCurrent:  0,
+				HigherMax:      0,
+				Found:          foundSince,
+			}:
+				foundSince = []int64{}
+			default:
+			}
 		}
 		for i := 0; i < len(data); i++ {
 			rngLower := setRegionSeed(lower, int64(data[i].RegionX), int64(data[i].RegionZ), int64(data[i].Salt))
@@ -87,7 +115,21 @@ lowerLoop:
 	higherLoop:
 		for higher := int64(0); higher < int64(1)<<(48-19); higher++ {
 			if higher%((int64(1)<<(48-19))/100) == 0 {
-				log.Printf("higher %3.0f%% (%6d/%-6d) (so far %d)", float64(higher)/float64(int64(1)<<(48-19))*100, higher, int64(1)<<(48-19), len(structureSeeds))
+				select {
+				case <-stop:
+					return structureSeeds
+				case progress <- LiftingProgress{
+					LowerProgress:  float64(lower) / float64(1<<19),
+					LowerCurrent:   lower,
+					LowerMax:       1 << 19,
+					HigherProgress: float64(higher) / float64(int64(1)<<(48-19)),
+					HigherCurrent:  higher,
+					HigherMax:      int64(1) << (48 - 19),
+					Found:          foundSince,
+				}:
+					foundSince = []int64{}
+				default:
+				}
 			}
 			seed := (higher << 19) | lower
 			for i := 0; i < len(data); i++ {
@@ -100,7 +142,20 @@ lowerLoop:
 				}
 			}
 			structureSeeds = append(structureSeeds, seed)
+			foundSince = append(foundSince, seed)
 		}
+	}
+	select {
+	case progress <- LiftingProgress{
+		LowerProgress:  1,
+		LowerCurrent:   1 << 19,
+		LowerMax:       1 << 19,
+		HigherProgress: 0,
+		HigherCurrent:  0,
+		HigherMax:      0,
+		Found:          foundSince,
+	}:
+	default:
 	}
 	return structureSeeds
 }
