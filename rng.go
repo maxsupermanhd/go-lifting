@@ -69,7 +69,7 @@ func addSeedsToList(structureSeed int64) []int64 {
 	return ret
 }
 
-func structureSeedToWorldSeeds(structureSeed int64) []int64 {
+func StructureSeedToWorldSeeds(structureSeed int64) []int64 {
 	r := addSeedsToList(structureSeed)
 	for i := 0; i < len(r); i++ {
 		s := r[i]
