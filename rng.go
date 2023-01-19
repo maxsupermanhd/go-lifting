@@ -35,45 +35,36 @@ func nextLong(seed *int64) int64 {
 }
 
 // com.seedfinding.mccore.util.math.NextLongReverser.addSeedsToList
-func addSeedsToList(structureSeed int64) []int64 {
-	ret := []int64{}
-	lowerBits := structureSeed & 0xffff_ffff
-	upperBits := structureSeed >> 32
-	if (lowerBits & 0x8000_0000) != 0 {
-		upperBits += 1
-	}
-	bitsOfDanger := int64(1)
-	lowMin := lowerBits<<16 - bitsOfDanger
-	lowMax := ((lowerBits+1)<<16 - bitsOfDanger) - 1
-	upperMin := ((upperBits << 16) - 107048004364969) >> bitsOfDanger
-	m1lv := (lowMax*-33441+upperMin*17549)/(1<<31-bitsOfDanger) + 1
-	m2lv := (lowMin*46603+upperMin*39761)/(1<<32-bitsOfDanger) + 1
-	seed := (-39761*m1lv + 35098*m2lv)
-	if (46603*m1lv+66882*m2lv)+107048004364969>>16 == upperBits {
-		if seed>>16 == lowerBits {
-			ret = append(ret, (254681119335897*seed+120305458776662)&0xffff_ffff_ffff)
-		}
-	}
-	seed = (-39761*(m1lv+1) + 35098*m2lv)
-	if (46603*(m1lv+1)+66882*m2lv)+107048004364969>>16 == upperBits {
-		if seed>>16 == lowerBits {
-			ret = append(ret, (254681119335897*seed+120305458776662)&0xffff_ffff_ffff)
-		}
-	}
-	seed = (-39761*m1lv + 35098*(m2lv+1))
-	if (46603*m1lv+66882*(m2lv+1))+107048004364969>>16 == upperBits {
-		if seed>>16 == lowerBits {
-			ret = append(ret, (254681119335897*seed+120305458776662)&0xffff_ffff_ffff)
-		}
-	}
-	return ret
-}
-
-func StructureSeedToWorldSeeds(structureSeed int64) []int64 {
-	r := addSeedsToList(structureSeed)
-	for i := 0; i < len(r); i++ {
-		s := r[i]
-		r[i] = nextLong(&s)
-	}
-	return r
-}
+// func addSeedsToList(structureSeed int64) []int64 {
+// 	ret := []int64{}
+// 	lowerBits := structureSeed & 0xffff_ffff
+// 	upperBits := structureSeed >> 32
+// 	if (lowerBits & 0x8000_0000) != 0 {
+// 		upperBits += 1
+// 	}
+// 	bitsOfDanger := int64(1)
+// 	lowMin := lowerBits<<16 - bitsOfDanger
+// 	lowMax := ((lowerBits+1)<<16 - bitsOfDanger) - 1
+// 	upperMin := ((upperBits << 16) - 107048004364969) >> bitsOfDanger
+// 	m1lv := (lowMax*-33441+upperMin*17549)/(1<<31-bitsOfDanger) + 1
+// 	m2lv := (lowMin*46603+upperMin*39761)/(1<<32-bitsOfDanger) + 1
+// 	seed := (-39761*m1lv + 35098*m2lv)
+// 	if (46603*m1lv+66882*m2lv)+107048004364969>>16 == upperBits {
+// 		if seed>>16 == lowerBits {
+// 			ret = append(ret, (254681119335897*seed+120305458776662)&0xffff_ffff_ffff)
+// 		}
+// 	}
+// 	seed = (-39761*(m1lv+1) + 35098*m2lv)
+// 	if (46603*(m1lv+1)+66882*m2lv)+107048004364969>>16 == upperBits {
+// 		if seed>>16 == lowerBits {
+// 			ret = append(ret, (254681119335897*seed+120305458776662)&0xffff_ffff_ffff)
+// 		}
+// 	}
+// 	seed = (-39761*m1lv + 35098*(m2lv+1))
+// 	if (46603*m1lv+66882*(m2lv+1))+107048004364969>>16 == upperBits {
+// 		if seed>>16 == lowerBits {
+// 			ret = append(ret, (254681119335897*seed+120305458776662)&0xffff_ffff_ffff)
+// 		}
+// 	}
+// 	return ret
+// }

@@ -145,17 +145,16 @@ lowerLoop:
 			foundSince = append(foundSince, seed)
 		}
 	}
-	select {
-	case progress <- LiftingProgress{
-		LowerProgress:  1,
-		LowerCurrent:   1 << 19,
-		LowerMax:       1 << 19,
-		HigherProgress: 0,
-		HigherCurrent:  0,
-		HigherMax:      0,
-		Found:          foundSince,
-	}:
-	default:
+	if progress != nil {
+		progress <- LiftingProgress{
+			LowerProgress:  1,
+			LowerCurrent:   1 << 19,
+			LowerMax:       1 << 19,
+			HigherProgress: 0,
+			HigherCurrent:  0,
+			HigherMax:      0,
+			Found:          foundSince,
+		}
 	}
 	return structureSeeds
 }
